@@ -54,14 +54,44 @@
     <div class="search-container">
       <div class="row">
         <div class="col-md-8 offset-md-2">
-          <div class="input-group mb-3">
-            <input type="text" id="search-input" class="form-control" placeholder="확장 프로그램 ID 검색 (예: ms-python.python)">
-            <button class="btn btn-primary" id="search-btn">검색</button>
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">extensions.yml 파일 업로드</h5>
+            </div>
+            <div class="card-body">
+              <form id="upload-form" enctype="multipart/form-data">
+                <div class="mb-3">
+                  <label for="extensions-file" class="form-label">VS Code extensions.yml 파일 선택</label>
+                  <input class="form-control" type="file" id="extensions-file" name="extensionsFile" accept=".yml,.yaml">
+                </div>
+                <button type="submit" class="btn btn-primary" id="upload-btn">업로드 및 분석</button>
+              </form>
+              <div id="upload-status" class="mt-3 d-none">
+                <div class="d-flex align-items-center">
+                  <div class="spinner-border text-primary me-2" role="status">
+                    <span class="visually-hidden">로딩 중...</span>
+                  </div>
+                  <span>파일 분석 중...</span>
+                </div>
+              </div>
+            </div>
           </div>
-          
-          <div class="input-group">
-            <input type="text" id="uuid-input" class="form-control" placeholder="UUID로 검색 (예: f1f59ae4-9318-4f3c-a9b5-81b2eaa5f8a5)">
-            <button class="btn btn-secondary" id="uuid-search-btn">UUID로 검색</button>
+
+          <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+              <h5 class="mb-0">개별 확장 프로그램 검색</h5>
+            </div>
+            <div class="card-body">
+              <div class="input-group mb-3">
+                <input type="text" id="search-input" class="form-control" placeholder="확장 프로그램 ID 검색 (예: ms-python.python)">
+                <button class="btn btn-primary" id="search-btn">검색</button>
+              </div>
+              
+              <div class="input-group">
+                <input type="text" id="uuid-input" class="form-control" placeholder="UUID로 검색 (예: f1f59ae4-9318-4f3c-a9b5-81b2eaa5f8a5)">
+                <button class="btn btn-secondary" id="uuid-search-btn">UUID로 검색</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -113,18 +143,17 @@
     <div class="mt-5">
       <h3>사용 방법</h3>
       <ol>
-        <li>터미널에서 <code>node index.js check &lt;extensions.yml 파일 경로&gt;</code> 명령을 실행하여 확장 프로그램 목록을 확인합니다.</li>
+        <li>VS Code에서 <code>extensions.yml</code> 파일을 내보냅니다.</li>
+        <li>웹 인터페이스에서 <code>extensions.yml</code> 파일을 업로드합니다.</li>
         <li>Open VSX에서 사용할 수 없는 확장 프로그램 목록이 표시됩니다.</li>
         <li>웹 인터페이스에서 ID 또는 UUID로 확장 프로그램을 검색하고 다운로드할 수 있습니다.</li>
         <li>다운로드한 VSIX 파일을 Open VSX 기반 IDE에 수동으로 설치합니다.</li>
       </ol>
       
-      <h3>명령어 옵션</h3>
-      <ul>
-        <li><code>node index.js check &lt;extensions.yml 파일 경로&gt;</code>: 확장 프로그램 목록을 확인합니다.</li>
-        <li><code>node index.js download &lt;확장 프로그램 ID&gt;</code>: ID로 특정 확장 프로그램을 다운로드합니다.</li>
-        <li><code>node index.js download-by-uuid &lt;UUID&gt; -f &lt;extensions.yml 파일 경로&gt;</code>: UUID로 특정 확장 프로그램을 다운로드합니다.</li>
-      </ul>
+      <h3>VS Code에서 extensions.yml 파일 내보내기</h3>
+      <p>VS Code에서 다음 명령을 실행하여 확장 프로그램 목록을 YAML 형식으로 내보낼 수 있습니다:</p>
+      <pre><code>code --list-extensions --show-versions | sed -e 's/\(.*\)@\(.*\)/  - id: \1\n    uuid: 00000000-0000-0000-0000-000000000000/' | (echo "enabled:" && cat) > extensions.yml</code></pre>
+      <p>이후 각 확장 프로그램의 UUID를 수동으로 업데이트해야 합니다.</p>
     </div>
   </div>
 
@@ -133,6 +162,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       fetchExtensions();
       
+      // 검색 기능 이벤트 리스너
       document.getElementById('search-btn').addEventListener('click', searchExtension);
       document.getElementById('search-input').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -146,7 +176,54 @@
           searchByUuid();
         }
       });
+      
+      // 파일 업로드 이벤트 리스너
+      document.getElementById('upload-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        uploadExtensionsFile();
+      });
     });
+    
+    // extensions.yml 파일 업로드 및 처리 함수
+    function uploadExtensionsFile() {
+      const fileInput = document.getElementById('extensions-file');
+      const uploadStatus = document.getElementById('upload-status');
+      const uploadBtn = document.getElementById('upload-btn');
+      
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('extensions.yml 파일을 선택해주세요.');
+        return;
+      }
+      
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('extensionsFile', file);
+      
+      // 업로드 상태 표시
+      uploadStatus.classList.remove('d-none');
+      uploadBtn.disabled = true;
+      
+      fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          uploadStatus.innerHTML = '<div class="alert alert-success">파일 분석 완료! 확장 프로그램 목록이 업데이트되었습니다.</div>';
+          // 확장 프로그램 목록 새로고침
+          fetchExtensions();
+        } else {
+          uploadStatus.innerHTML = `<div class="alert alert-danger">파일 분석 실패: ${data.message}</div>`;
+        }
+      })
+      .catch(error => {
+        uploadStatus.innerHTML = `<div class="alert alert-danger">오류 발생: ${error.message}</div>`;
+      })
+      .finally(() => {
+        uploadBtn.disabled = false;
+      });
+    }
 
     function fetchExtensions() {
       fetch('/api/extensions')
@@ -220,37 +297,24 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            if (data.source === 'open-vsx') {
-              downloadText.textContent = '다운로드 완료';
+            // VSCode Marketplace에서 다운로드
+            if (data.directDownloadUrl) {
+              downloadText.textContent = '직접 다운로드 완료';
               button.classList.remove('btn-primary');
               button.classList.add('btn-success');
               
-              // 다운로드 링크 생성
+              // 직접 다운로드 링크 생성
               const link = document.createElement('a');
-              link.href = data.path;
-              link.download = `${extensionId}.vsix`;
+              link.href = data.directDownloadUrl;
+              // 서버에서 전달한 파일 이름 사용
+              link.download = data.fileName || `${extensionId}.vsix`;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
             } else {
-              // 직접 다운로드만 제공
-              if (data.directDownloadUrl) {
-                downloadText.textContent = '직접 다운로드 완료';
-                button.classList.remove('btn-primary');
-                button.classList.add('btn-success');
-                
-                // 직접 다운로드 링크 생성
-                const link = document.createElement('a');
-                link.href = data.directDownloadUrl;
-                link.download = `${extensionId}.vsix`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              } else {
-                downloadText.textContent = '다운로드 실패';
-                button.classList.remove('btn-primary');
-                button.classList.add('btn-danger');
-              }
+              downloadText.textContent = '다운로드 실패';
+              button.classList.remove('btn-primary');
+              button.classList.add('btn-danger');
             }
           } else {
             downloadText.textContent = '다운로드 실패';
@@ -281,37 +345,24 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            if (data.source === 'open-vsx') {
-              downloadText.textContent = '다운로드 완료';
+            // VSCode Marketplace에서 다운로드
+            if (data.directDownloadUrl) {
+              downloadText.textContent = '직접 다운로드 완료';
               button.classList.remove('btn-outline-primary');
               button.classList.add('btn-success');
               
-              // 다운로드 링크 생성
+              // 직접 다운로드 링크 생성
               const link = document.createElement('a');
-              link.href = data.path;
-              link.download = `${data.extensionId}.vsix`;
+              link.href = data.directDownloadUrl;
+              // 서버에서 전달한 파일 이름 사용
+              link.download = data.fileName || `${uuid}.vsix`;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
             } else {
-              // 직접 다운로드만 제공
-              if (data.directDownloadUrl) {
-                downloadText.textContent = '직접 다운로드 완료';
-                button.classList.remove('btn-outline-primary');
-                button.classList.add('btn-success');
-                
-                // 직접 다운로드 링크 생성
-                const link = document.createElement('a');
-                link.href = data.directDownloadUrl;
-                link.download = `${data.extensionId || extensionId}.vsix`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              } else {
-                downloadText.textContent = '다운로드 실패';
-                button.classList.remove('btn-outline-primary');
-                button.classList.add('btn-danger');
-              }
+              downloadText.textContent = '다운로드 실패';
+              button.classList.remove('btn-outline-primary');
+              button.classList.add('btn-danger');
             }
           } else {
             downloadText.textContent = '다운로드 실패';

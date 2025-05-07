@@ -1,0 +1,31 @@
+{
+  "name": "vsx-extension-finder",
+  "version": "1.0.0",
+  "description": "VSCode 확장 프로그램을 Open VSX에서 검색하고 VSIX 파일을 다운로드하는 도구",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "vscode",
+    "extensions",
+    "open-vsx",
+    "vsix"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "js-yaml": "^4.1.0",
+    "ora": "^7.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

@@ -1,41 +1,33 @@
-# 의존성 디렉토리
-node_modules/
+# Rust 프로젝트 관련 파일
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# 다운로드 디렉토리 (확장 프로그램 다운로드 파일)
+/downloads/
+
+# 결과 파일
+/results.json
+/downloads.json
 
 # 환경 설정 파일
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 # 로그 파일
-logs
+/logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# 다운로드 디렉토리 (확장 프로그램 다운로드 파일)
-downloads/
-
-# 결과 파일
-results.json
-downloads.json
 
 # 운영체제 파일
 .DS_Store
 Thumbs.db
 
 # 에디터 디렉토리 및 파일
-.idea/
-.vscode/
+/.idea/
+/.vscode/
 *.swp
 *.swo
 
-# 빌드 디렉토리
-dist/
-build/
-
 # 임시 파일
-tmp/
-temp/
+/tmp/
+/temp/
